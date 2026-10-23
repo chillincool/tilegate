@@ -22,14 +22,45 @@ Every push to `main` also publishes `:main` and `:sha-<short>` images, so you ca
 
 There's no separate chart version to keep in sync: the chart is always released together with the app, at the same version.
 
-## One-time setup after the first push
+## Making changes
 
-- **Make the packages public.** Packages that GitHub Actions publishes to GHCR start out private. After the first release, open the org's *Packages* page, and for both `tilegate` and `charts/tilegate` go to *Package settings* → *Change visibility* → Public. Also confirm the package is linked to this repository.
-- **Turn on private vulnerability reporting** in *Settings → Security*. [SECURITY.md](SECURITY.md) links to it.
-- **Protect `main`.** In *Settings → Rules → Rulesets*, add a ruleset for `main` that requires a pull request and the `checks`, `e2e (ubuntu-latest)` and `e2e (ubuntu-24.04-arm)` CI checks, and blocks force pushes.
-- **Merge settings.** Allow squash merging only, use the PR title as the commit message, and turn on *Automatically delete head branches*.
-- **About box.** Add a description and the topics `self-hosted`, `oidc`, `keycloak`, `kubernetes`, `homelab`, `dashboard`.
-- **Org Actions permissions.** If the release workflow fails with `denied: permission_denied` while pushing to GHCR, go to *Org settings → Actions → General → Workflow permissions* and allow read and write. The workflow already requests only the permissions it needs.
+`main` is protected, so every change, including your own, goes through a pull request:
+
+```sh
+git switch -c fix/something
+# ...edit, then: mise run ci   (and mise run e2e for anything user-facing)
+git commit -am "fix: something"
+git push -u origin fix/something
+gh pr create --fill
+gh pr merge --squash --auto     # merges by itself once the checks pass
+```
+
+Dependabot opens PRs for Go modules, GitHub Actions and the Docker base image every week. CI tests each one; merge the green ones. For a major version bump, skim the upstream release notes first.
+
+## Repository settings
+
+These are already applied. They're listed here so you know what's enforced and where to change it.
+
+| Setting | What it does | Where |
+|---|---|---|
+| `main` ruleset | Changes need a PR; the `checks`, `e2e (ubuntu-latest)` and `e2e (ubuntu-24.04-arm)` checks must pass; CodeQL must report no high or critical alerts; no force-pushes, deletion or merge commits. No bypass, not even for admins. | Settings → Rules → Rulesets |
+| `release tags` ruleset | `v*` tags can't be moved, overwritten or deleted. | Settings → Rules → Rulesets |
+| Immutable releases | A published release's tag and assets can't be changed. | Settings → General → Releases |
+| Merging | Squash only, with the PR title as the commit message. Auto-merge on; branches deleted after merge. | Settings → General → Pull Requests |
+| Private vulnerability reporting | The "Report a vulnerability" button that [SECURITY.md](SECURITY.md) links to. | Settings → Security |
+| Secret scanning + push protection | Blocks pushes containing known credential formats, and alerts on any already committed. | Settings → Security |
+| Dependabot alerts + security updates | Alerts on vulnerable dependencies and opens fix PRs automatically. | Settings → Security |
+| CodeQL (default setup, extended queries) | Scans the Go code and the workflow files on every PR, on every push to `main`, and weekly. | Security → Code scanning |
+| Actions: read-only token by default | Workflows must ask for write access explicitly; `release.yml` asks for `contents` and `packages`. | Settings → Actions → General |
+| Actions: allowed actions | Only GitHub's own actions, verified creators, `jdx/mise-action`, `azure/setup-helm` and `docker/*`. Adding a new action means adding it here. | Settings → Actions → General |
+| Actions: outside contributors | Workflows from outside contributors' PRs wait for your approval before running. | Settings → Actions → General |
+| Actions pinned to commit SHAs | Workflows use full commit SHAs, not movable tags; Dependabot updates them. | `.github/workflows/` |
+
+Not enabled, because they need a paid GitHub licence: secret scanning for generic (non-vendor) patterns, and secret validity checks.
+
+### Still to do after the first release
+
+- **Make the packages public.** Packages that GitHub Actions publishes to GHCR start out private. After tagging `v0.1.0`, open the organisation's *Packages* page, and for both `tilegate` and `charts/tilegate` go to *Package settings* → *Change visibility* → Public. Also check each package is linked to this repository.
 
 ## Why the repository is set up this way
 
@@ -47,5 +78,6 @@ There's no separate chart version to keep in sync: the chart is always released 
 | **SECURITY.md, issue forms, PR template** | GitHub shows these in the right places (Security tab, *New issue*). The bug form asks for version, auth mode and IdP up front, which are what auth bugs almost always depend on. |
 | **CI runs `mise` tasks** | Each check is defined once, in `mise.toml`. CI calls the same tasks you run locally, with the same tool versions, so "passes on my machine" and "passes in CI" mean the same thing. |
 | **End-to-end tests in kind, on amd64 and arm64** | tilegate's job is login and access control, so the tests that matter run against a real Keycloak, Envoy Gateway and CloudNativePG. Free on public repos, and the arm64 job tests the arm64 image for real rather than only building it. |
+| **Rulesets with no bypass, and SHA-pinned actions** | A solo maintainer is the easiest account to compromise and the likeliest to cut corners at 1am. Requiring PRs and green checks even for the owner means nothing reaches `main` or a release untested. Pinning actions to commits means an upstream tag being moved can't change what runs in CI. |
 | **CI also runs `govulncheck`** | An auth-adjacent project should hear about vulnerable dependencies before its users do. |
 | **No `CHANGELOG.md`** | Generated release notes come from PR titles. Write clear PR titles and the changelog writes itself. |
