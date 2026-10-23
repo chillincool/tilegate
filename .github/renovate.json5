@@ -1,0 +1,66 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    ':dependencyDashboard',
+    ':semanticCommits',
+    // Keep GitHub Actions pinned to commit SHAs (with a version comment).
+    'helpers:pinGitHubActionDigests',
+    ':timezone(America/Chicago)',
+  ],
+  // One batch of update PRs a week. Security fixes ignore the schedule.
+  schedule: ['before 6am on monday'],
+  vulnerabilityAlerts: {
+    schedule: ['at any time'],
+    labels: ['security'],
+  },
+  // config:recommended skips test/ and examples/ folders; here they pin real
+  // versions (the e2e cluster components, the Compose demo), so scan them.
+  ignorePaths: ['**/node_modules/**', '**/vendor/**'],
+  postUpdateOptions: ['gomodTidy'],
+  labels: ['dependencies'],
+  // Kubernetes manifests aren't scanned by default; these hold the e2e Keycloak image.
+  kubernetes: {
+    managerFilePatterns: ['/^test/e2e/manifests/.+\\.ya?ml$/'],
+  },
+  customManagers: [
+    {
+      // Versions in shell scripts, marked with a comment on the line above:
+      //   # renovate: datasource=docker depName=curlimages/curl
+      //   CURL_IMAGE=curlimages/curl:8.17.0
+      customType: 'regex',
+      managerFilePatterns: ['/^test/e2e/.+\\.sh$/', '/^scripts/.+\\.sh$/'],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( registryUrl=(?<registryUrl>\\S+))?\\n[^\\n]*[=:](?<currentValue>[^\\s"]+)',
+      ],
+    },
+  ],
+  packageRules: [
+    {
+      description: 'All GitHub Actions in one PR',
+      matchManagers: ['github-actions'],
+      groupName: 'GitHub Actions',
+    },
+    {
+      description: 'Non-major Go module updates in one PR; majors stay separate',
+      matchManagers: ['gomod'],
+      matchUpdateTypes: ['minor', 'patch', 'digest'],
+      groupName: 'Go modules',
+    },
+    {
+      description: 'Move the Go toolchain everywhere at once (mise and the Dockerfile build image)',
+      matchDepNames: ['go', 'golang'],
+      groupName: 'Go toolchain',
+    },
+    {
+      description: 'Developer and test tools (mise, e2e cluster components) in one PR',
+      matchFileNames: ['mise.toml', 'test/e2e/**', 'scripts/**', 'examples/**'],
+      groupName: 'dev and test tooling',
+    },
+    {
+      description: 'The release chart version is set from the git tag, not by Renovate',
+      matchFileNames: ['charts/tilegate/Chart.yaml'],
+      enabled: false,
+    },
+  ],
+}
