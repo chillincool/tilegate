@@ -35,7 +35,7 @@ gh pr create --fill
 gh pr merge --squash --auto     # merges by itself once the checks pass
 ```
 
-Dependabot opens PRs for Go modules, GitHub Actions and the Docker base image every week. CI tests each one; merge the green ones. For a major version bump, skim the upstream release notes first.
+Renovate runs hourly from [`.github/workflows/renovate.yaml`](.github/workflows/renovate.yaml) and opens grouped update PRs every Monday morning (US Central), and security fixes immediately. CI tests each one, including a dry run of the release steps, so merge the green ones. For a major version bump, skim the upstream release notes first. The **Dependency Dashboard** issue lists everything pending, and lets you trigger any update early by ticking its box. To run Renovate right away, or as a dry run: Actions → Renovate → *Run workflow*.
 
 ## Repository settings
 
@@ -43,18 +43,20 @@ These are already applied. They're listed here so you know what's enforced and w
 
 | Setting | What it does | Where |
 |---|---|---|
-| `main` ruleset | Changes need a PR; the `checks`, `e2e (ubuntu-latest)` and `e2e (ubuntu-24.04-arm)` checks must pass; CodeQL must report no high or critical alerts; no force-pushes, deletion or merge commits. No bypass, not even for admins. | Settings → Rules → Rulesets |
+| `main` ruleset | Changes need a PR; the `checks`, `e2e (ubuntu-latest)`, `e2e (ubuntu-24.04-arm)` and `publish-dry-run` checks must pass; CodeQL must report no high or critical alerts; no force-pushes, deletion or merge commits. No bypass, not even for admins. | Settings → Rules → Rulesets |
 | `release tags` ruleset | `v*` tags can't be moved, overwritten or deleted. | Settings → Rules → Rulesets |
 | Immutable releases | A published release's tag and assets can't be changed. | Settings → General → Releases |
 | Merging | Squash only, with the PR title as the commit message. Auto-merge on; branches deleted after merge. | Settings → General → Pull Requests |
 | Private vulnerability reporting | The "Report a vulnerability" button that [SECURITY.md](SECURITY.md) links to. | Settings → Security |
 | Secret scanning + push protection | Blocks pushes containing known credential formats, and alerts on any already committed. | Settings → Security |
-| Dependabot alerts + security updates | Alerts on vulnerable dependencies and opens fix PRs automatically. | Settings → Security |
+| Renovate | Runs hourly as this repo's own GitHub App, `chillincool-tilegate-renovate` (installed on tilegate only). Opens the update PRs, and security-fix PRs as soon as an alert appears. Config: [`.github/renovate.json5`](.github/renovate.json5). | `.github/workflows/renovate.yaml`; app: Org settings → Developer settings → GitHub Apps |
+| `renovate` environment | Holds the app's private key (`RENOVATE_APP_PRIVATE_KEY` secret) and client ID (`RENOVATE_APP_CLIENT_ID` variable). Only the `main` branch can use it, so no branch or PR can read the key. | Settings → Environments |
+| Dependabot alerts | Alerts on vulnerable dependencies; Renovate reads them and opens the fix PRs. Dependabot's own update and security PRs are off, to avoid duplicates. | Settings → Security |
 | CodeQL (default setup, extended queries) | Scans the Go code and the workflow files on every PR, on every push to `main`, and weekly. | Security → Code scanning |
 | Actions: read-only token by default | Workflows must ask for write access explicitly; `release.yml` asks for `contents` and `packages`. | Settings → Actions → General |
-| Actions: allowed actions | Only GitHub's own actions, verified creators, `jdx/mise-action`, `azure/setup-helm` and `docker/*`. Adding a new action means adding it here. | Settings → Actions → General |
+| Actions: allowed actions | Only GitHub's own actions, verified creators, `jdx/mise-action`, `azure/setup-helm`, `docker/*` and `renovatebot/github-action`. Adding a new action means adding it here. | Settings → Actions → General |
 | Actions: outside contributors | Workflows from outside contributors' PRs wait for your approval before running. | Settings → Actions → General |
-| Actions pinned to commit SHAs | Workflows use full commit SHAs, not movable tags; Dependabot updates them. | `.github/workflows/` |
+| Actions pinned to commit SHAs | Workflows use full commit SHAs, not movable tags; Renovate updates them. | `.github/workflows/` |
 
 Not enabled, because they need a paid GitHub licence: secret scanning for generic (non-vendor) patterns, and secret validity checks.
 
@@ -73,7 +75,7 @@ Not enabled, because they need a paid GitHub licence: secret scanning for generi
 | **GHCR for both the image and the chart** | It's free for public repos, authenticates with the built-in `GITHUB_TOKEN` (no secrets to manage), and Flux can consume OCI Helm charts directly through `OCIRepository`. |
 | **Chart in the same repo, versioned with the app** | One version number for users to think about, and chart changes are reviewed alongside the code they deploy. |
 | **Tag-driven releases** | Pushing a tag is the whole release process. Nothing is published by hand, so a release can be repeated and checked later. |
-| **Renovate for updates, GitHub for security alerts** | Renovate tracks every pinned version: Go modules, Actions (kept pinned to SHAs), the Dockerfile, `mise.toml` tools, and the image and chart versions in the e2e scripts. Dependabot can't see most of those. Updates arrive grouped, once a week; security fixes come straight away. GitHub's own Dependabot *alerts* stay on as a second pair of eyes. Config: [`.github/renovate.json5`](.github/renovate.json5). |
+| **Renovate for updates, GitHub for security alerts** | Renovate runs from this repo as its own narrowly scoped GitHub App, rather than a hosted service with broad access, and its key can only be used from `main`. It tracks every pinned version: Go modules, Actions (kept pinned to SHAs), the Dockerfile, `mise.toml` tools, and the image and chart versions in the e2e scripts. Dependabot can't see most of those. Updates arrive grouped, once a week; security fixes come straight away. GitHub's own Dependabot *alerts* stay on as a second pair of eyes. Config: [`.github/renovate.json5`](.github/renovate.json5). |
 | **MIT licence** | Short and permissive, and the most common choice for small self-hosted tools. Anyone can use or fork tilegate, as long as the copyright notice stays. |
 | **SECURITY.md, issue forms, PR template** | GitHub shows these in the right places (Security tab, *New issue*). The bug form asks for version, auth mode and IdP up front, which are what auth bugs almost always depend on. |
 | **CI runs `mise` tasks** | Each check is defined once, in `mise.toml`. CI calls the same tasks you run locally, with the same tool versions, so "passes on my machine" and "passes in CI" mean the same thing. |
@@ -81,3 +83,9 @@ Not enabled, because they need a paid GitHub licence: secret scanning for generi
 | **Rulesets with no bypass, and SHA-pinned actions** | A solo maintainer is the easiest account to compromise and the likeliest to cut corners at 1am. Requiring PRs and green checks even for the owner means nothing reaches `main` or a release untested. Pinning actions to commits means an upstream tag being moved can't change what runs in CI. |
 | **CI also runs `govulncheck`** | An auth-adjacent project should hear about vulnerable dependencies before its users do. |
 | **No `CHANGELOG.md`** | Generated release notes come from PR titles. Write clear PR titles and the changelog writes itself. |
+
+## Rotating the Renovate app key
+
+1. Org settings → Developer settings → GitHub Apps → `chillincool-tilegate-renovate` → **Generate a private key**.
+2. `gh secret set RENOVATE_APP_PRIVATE_KEY --env renovate --repo chillincool/tilegate < path/to/new-key.pem`
+3. Actions → Renovate → *Run workflow* to check it works, then delete the old key on the app page and the `.pem` file from your machine.
