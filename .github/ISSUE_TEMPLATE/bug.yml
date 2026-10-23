@@ -1,0 +1,32 @@
+name: Bug report
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: tilegate version
+      description: Shown in the page footer and by `tilegate version`.
+    validations: { required: true }
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Auth mode
+      options: [oidc, proxy-jwt, proxy-header, dev]
+    validations: { required: true }
+  - type: input
+    id: idp
+    attributes:
+      label: Identity provider and proxy
+      placeholder: e.g. Keycloak 26 behind Envoy Gateway 1.5
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs and config
+      description: Run with TILEGATE_LOG_LEVEL=debug. Remove secrets and tokens first.
+      render: text

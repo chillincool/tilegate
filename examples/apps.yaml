@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=../schema/apps.schema.json
+#
+# Each app is shown only to users who hold at least one of its `roles`.
+# Roles are read from the claim(s) in TILEGATE_ROLES_CLAIM (default: groups).
+# An app without `roles` is shown to every signed-in user.
+title: My Apps
+
+# Optional. Every key: docs/apps-file.md#theming
+# theme:
+#   mode: auto            # auto | light | dark
+#   tileSize: 100         # px
+#   accent: "#4f6bed"
+#   logo: logo.svg        # same forms as an app icon
+
+apps:
+  - name: Home Assistant
+    url: https://hass.example.com
+    icon: di:home-assistant
+    roles: [family, admins]
+
+  - name: Immich
+    url: https://photos.example.com
+    icon: di:immich
+    description: Family photo library
+    roles: [family, admins]
+
+  - name: Paperless
+    url: https://paperless.example.com
+    icon: di:paperless-ngx
+    roles: [family, admins]
+
+  - name: Vaultwarden
+    url: https://vault.example.com
+    icon: di:vaultwarden
+    # no roles: every signed-in user sees it
+
+  - name: Jellyfin
+    url: https://jellyfin.example.com
+    icon: di:jellyfin
+    category: Media
+    roles: [media, admins]
+
+  - name: Audiobookshelf
+    url: https://abs.example.com
+    icon: di:audiobookshelf
+    category: Media
+    roles: [media, admins]
+
+  - name: Radarr
+    url: https://radarr.example.com
+    icon: di:radarr
+    category: Media
+    roles: [media-admins, admins]
+
+  - name: Sonarr
+    url: https://sonarr.example.com
+    icon: di:sonarr
+    category: Media
+    roles: [media-admins, admins]
+
+  - name: qBittorrent
+    url: https://qbt.example.com
+    icon: di:qbittorrent
+    category: Media
+    roles: [media-admins, admins]
+
+  - name: Grafana
+    url: https://grafana.example.com
+    # Skip Grafana's login page and go straight to SSO.
+    loginURL: /login/generic_oauth
+    icon: di:grafana
+    category: Infrastructure
+    roles: [admins]
+
+  - name: Proxmox
+    url: https://pve.example.com:8006
+    icon: di:proxmox
+    category: Infrastructure
+    roles: [admins]
+    newTab: true
+
+  - name: Keycloak
+    url: https://login.example.com/admin/
+    icon: di:keycloak
+    category: Infrastructure
+    roles: [admins]
+
+  - name: Status
+    url: https://status.example.com
+    category: Infrastructure
+    description: No icon set, so the tile shows the first letter
+    roles: [admins]

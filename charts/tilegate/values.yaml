@@ -1,0 +1,186 @@
+# -- Default values for tilegate. Every key is optional unless noted.
+
+image:
+  repository: ghcr.io/chillincool/tilegate
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+auth:
+  # oidc | proxy-jwt | proxy-header | dev
+  mode: oidc
+  # Comma-separated claim path(s) holding the user's roles or groups,
+  # e.g. "groups" or "groups,realm_access.roles,resource_access.tilegate.roles".
+  rolesClaim: groups
+
+  # Built-in login (mode: oidc).
+  oidc:
+    issuer: ""                # https://login.example.com/realms/home
+    discoveryURL: ""          # optional in-cluster URL for the same issuer
+    clientID: tilegate
+    redirectURL: ""           # https://apps.example.com/auth/callback
+    postLogoutRedirectURL: ""
+    scopes: openid profile email
+    sessionTTL: 8h
+
+  # Trust a JWT forwarded by an auth proxy (mode: proxy-jwt).
+  proxyJWT:
+    header: Authorization
+    issuer: ""
+    jwksURL: ""
+    audience: ""
+
+  # Trust plain identity headers (mode: proxy-header). Requires trustedProxies.
+  proxyHeader:
+    userHeader: X-Forwarded-User
+    emailHeader: X-Forwarded-Email
+    groupsHeader: X-Forwarded-Groups
+
+  # Comma-separated CIDRs allowed to assert identity in the proxy modes.
+  trustedProxies: ""
+  # Sign-out link in the proxy modes, e.g. your proxy's logout path.
+  logoutURL: ""
+  # Groups given to everyone in dev mode.
+  devGroups: ""
+
+  # Secret holding "client-secret" and "session-secret" (oidc mode). When
+  # empty, the chart creates one from the two values below; a missing
+  # sessionSecret is generated once and kept across upgrades.
+  existingSecret: ""
+  clientSecret: ""
+  sessionSecret: ""
+
+# Rendered into the apps file. See examples/apps.yaml in the repository.
+config:
+  title: My Apps
+  apps: []
+  #  - name: Grafana
+  #    url: https://grafana.example.com
+  #    icon: di:grafana
+  #    roles: [admins]
+
+# Optional database for per-user favourites and theme choices. Without one,
+# favourites are off. Pick ONE of the options below; the first one set wins:
+#   1. existingSecret / url  - a full connection URL
+#   2. cnpg.enabled          - the chart creates a CloudNativePG cluster
+#   3. postgres.host         - an existing PostgreSQL server, as separate settings
+#   4. persistence.enabled   - SQLite on a volume (single replica)
+database:
+  # A Secret holding a full URL: postgres://user:pass@host:5432/db?sslmode=require
+  existingSecret: ""
+  secretKey: url
+  # A full URL in plain text (fine for sqlite:///..., avoid for passwords).
+  url: ""
+
+  # An existing PostgreSQL server, as separate settings.
+  postgres:
+    host: ""                  # e.g. postgres.db.svc.cluster.local
+    port: 5432
+    database: tilegate
+    user: tilegate
+    passwordSecret:
+      name: ""
+      key: password
+    sslMode: ""               # disable | require | verify-full ...; driver default is prefer
+
+  # Have the chart create a CloudNativePG Cluster (needs the CNPG operator).
+  # tilegate is wired to it automatically; there's no URL to write.
+  cnpg:
+    enabled: false
+    instances: 1              # more than 1 adds streaming replicas for failover
+    imageName: ""             # e.g. ghcr.io/cloudnative-pg/postgresql:17.2-3; empty = operator default
+    storage:
+      size: 1Gi
+      storageClass: ""
+    # Database and owner created by initdb.
+    database: tilegate
+    owner: tilegate
+    # A kubernetes.io/basic-auth Secret (username/password) for the owner.
+    # Empty: CNPG generates "<release>-db-app" itself.
+    existingSecret: ""
+    monitoring:
+      enablePodMonitor: false
+    resources: {}
+    # Copied as-is into the Cluster's spec.backup (barmanObjectStore etc.).
+    backup: {}
+    scheduledBackup:
+      enabled: false
+      # CNPG's cron format has a leading seconds field: "0 0 0 * * *" = daily at midnight.
+      schedule: "0 0 0 * * *"
+    # Anything else to merge into the Cluster spec (postgresql parameters, plugins, ...).
+    extraSpec: {}
+
+# Volume for SQLite. SQLite needs a single replica.
+persistence:
+  enabled: false
+  # Use an existing PVC (e.g. one created by VolSync) instead of creating one.
+  existingClaim: ""
+  size: 256Mi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+
+# Use your own ConfigMap (key "apps.yaml") instead of `config`.
+existingConfigMap: ""
+
+# ConfigMap of icon files, mounted at /icons and served under /icons/.
+iconsConfigMap: ""
+
+logLevel: info
+logFormat: json
+
+extraEnv: []
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Gateway API HTTPRoute (Envoy Gateway, Cilium, Traefik, ...).
+route:
+  enabled: false
+  annotations: {}
+  hostnames: []
+  parentRefs: []
+  #  - name: envoy-internal
+  #    namespace: network
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  #  - host: apps.example.com
+  tls: []
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 24Mi
+  limits:
+    memory: 64Mi
+
+podAnnotations: {}
+podLabels: {}
+
+# tilegate runs as any UID/GID; 65532 is distroless's "nonroot" user. Set
+# your own (e.g. 1000) to match your other apps or backup tooling.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  # Makes the persistence volume writable by the tilegate user.
+  fsGroup: 65532
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

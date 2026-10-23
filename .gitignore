@@ -1,0 +1,6 @@
+/tilegate
+/dist/
+*.tgz
+.DS_Store
+.env
+/.e2e/

@@ -1,0 +1,67 @@
+# Tools and tasks for working on tilegate. CI runs the same tasks, so
+# `mise run ci` and `mise run e2e` locally do exactly what GitHub Actions does.
+#   mise install        install the pinned tools
+#   mise tasks          list tasks
+
+[tools]
+go = "1.26.10"
+helm = "4.3.1"
+kind = "0.33.0"
+kubectl = "1.37.1"
+
+[env]
+# kubectl in this repo only ever sees the throwaway e2e cluster, never
+# whatever ~/.kube/config points at.
+KUBECONFIG = "{{config_root}}/.e2e/kubeconfig"
+
+[tasks.fmt]
+description = "Fail if any Go file needs gofmt"
+run = 'test -z "$(gofmt -l . | tee /dev/stderr)"'
+
+[tasks.vet]
+description = "go vet"
+run = "go vet ./..."
+
+[tasks.test]
+description = "Unit tests (also against PostgreSQL when TILEGATE_TEST_POSTGRES_URL is set)"
+run = "go test -race ./..."
+
+[tasks."test:postgres"]
+description = "Unit tests with a temporary PostgreSQL container"
+run = "scripts/test-postgres.sh"
+
+[tasks.vuln]
+description = "govulncheck"
+run = "go run golang.org/x/vuln/cmd/govulncheck@latest ./..."
+
+[tasks.examples]
+description = "Validate the example apps file"
+run = "go run ./cmd/tilegate check examples/apps.yaml"
+
+[tasks.chart]
+description = "Lint the Helm chart and render every option"
+run = "scripts/chart-check.sh"
+
+[tasks.image]
+description = "Build the container image for this machine"
+run = "docker build -t tilegate:dev ."
+
+[tasks.ci]
+description = "Everything CI checks except e2e"
+depends = ["fmt", "vet", "test", "vuln", "examples", "chart", "image"]
+
+[tasks.e2e]
+description = "Full end-to-end test in a throwaway kind cluster (create, test, delete)"
+run = "test/e2e/run.sh all"
+
+[tasks."e2e:up"]
+description = "Create the e2e cluster and install everything (keeps it running)"
+run = "test/e2e/run.sh up"
+
+[tasks."e2e:test"]
+description = "Rebuild tilegate and rerun the e2e tests on the running cluster"
+run = "test/e2e/run.sh test"
+
+[tasks."e2e:down"]
+description = "Delete the e2e cluster"
+run = "test/e2e/run.sh down"

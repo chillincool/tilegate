@@ -1,0 +1,8 @@
+tilegate {{ .Chart.AppVersion }} is installed in "{{ .Values.auth.mode }}" mode.
+{{- if eq .Values.auth.mode "dev" }}
+
+WARNING: dev mode signs every visitor in as a test user. Do not expose it.
+{{- end }}
+
+Validate an apps file locally before deploying:
+  docker run --rm -v $PWD/apps.yaml:/apps.yaml {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }} check /apps.yaml

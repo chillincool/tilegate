@@ -1,0 +1,13 @@
+{{- if and .Values.database.cnpg.enabled .Values.database.cnpg.scheduledBackup.enabled (eq (include "tilegate.databaseKind" .) "cnpg") }}
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ include "tilegate.cnpgName" . }}
+  labels:
+    {{- include "tilegate.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.database.cnpg.scheduledBackup.schedule | quote }}
+  backupOwnerReference: self
+  cluster:
+    name: {{ include "tilegate.cnpgName" . }}
+{{- end }}

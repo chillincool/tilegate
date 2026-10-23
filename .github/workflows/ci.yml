@@ -1,0 +1,49 @@
+name: CI
+
+# Every job runs the same `mise` tasks you can run locally:
+#   mise run ci    fast checks
+#   mise run e2e   end-to-end tests in a throwaway kind cluster
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      # The store tests also run against PostgreSQL when this is available.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      TILEGATE_TEST_POSTGRES_URL: postgres://postgres:test@localhost:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v2
+      - run: mise run ci
+
+  e2e:
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        # Native runners for both architectures the image is published for.
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v2
+      - run: mise run e2e

@@ -1,0 +1,116 @@
+# Envoy Gateway in front of the proxy-jwt release, set up like a typical
+# homelab: HTTPS listener plus an OIDC SecurityPolicy that forwards the
+# access token to tilegate.
+# kind has no load balancer, so give Envoy a ClusterIP Service; otherwise the
+# Gateway never gets an address and is never Programmed.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: e2e
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: e2e
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: e2e
+    namespace: envoy-gateway-system
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: e2e
+  namespace: tilegate
+spec:
+  gatewayClassName: e2e
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: apps.e2e.test
+      tls:
+        certificateRefs:
+          - name: apps-e2e-tls
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tilegate-proxy-oidc
+  namespace: tilegate
+stringData:
+  client-secret: e2e-proxy-secret
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: tilegate-proxy-auth
+  namespace: tilegate
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: tilegate-proxy
+  oidc:
+    provider:
+      issuer: https://keycloak.keycloak.svc.cluster.local:8443/realms/e2e
+      # Explicit endpoints, so the controller needn't fetch discovery itself.
+      authorizationEndpoint: https://keycloak.keycloak.svc.cluster.local:8443/realms/e2e/protocol/openid-connect/auth
+      tokenEndpoint: https://keycloak.keycloak.svc.cluster.local:8443/realms/e2e/protocol/openid-connect/token
+      endSessionEndpoint: https://keycloak.keycloak.svc.cluster.local:8443/realms/e2e/protocol/openid-connect/logout
+      # Envoy calls the token endpoint through this Service, trusting the
+      # test CA via the BackendTLSPolicy below.
+      backendRefs:
+        - name: keycloak
+          namespace: keycloak
+          port: 8443
+    clientID: tilegate-proxy
+    clientSecret:
+      name: tilegate-proxy-oidc
+    redirectURL: https://apps.e2e.test/oauth2/callback
+    logoutPath: /logout
+    forwardAccessToken: true
+---
+# Lets the SecurityPolicy in "tilegate" use the Keycloak Service.
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: tilegate-security-policies
+  namespace: keycloak
+spec:
+  from:
+    - group: gateway.envoyproxy.io
+      kind: SecurityPolicy
+      namespace: tilegate
+  to:
+    - group: ""
+      kind: Service
+      name: keycloak
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: keycloak
+      sectionName: https
+  validation:
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: keycloak-ca
+    hostname: keycloak.keycloak.svc.cluster.local

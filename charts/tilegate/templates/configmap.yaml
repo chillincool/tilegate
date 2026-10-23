@@ -1,0 +1,12 @@
+{{- if not .Values.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tilegate.fullname" . }}
+  labels:
+    {{- include "tilegate.labels" . | nindent 4 }}
+data:
+  # tilegate re-reads this file when it changes; no pod restart needed.
+  apps.yaml: |
+    {{- toYaml .Values.config | nindent 4 }}
+{{- end }}

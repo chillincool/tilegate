@@ -1,0 +1,21 @@
+# Shared by both e2e releases. The image is built locally and loaded into kind.
+image:
+  repository: tilegate
+  pullPolicy: Never
+logFormat: text
+logLevel: debug
+config:
+  title: E2E Apps
+  apps:
+    - name: Wiki
+      url: https://wiki.e2e.test
+    - name: Grafana
+      url: https://grafana.e2e.test
+      loginURL: /login/generic_oauth
+      roles: [admins]
+    - name: Jellyfin
+      url: https://jellyfin.e2e.test
+      roles: [media, admins]
+    - name: Photos
+      url: https://photos.e2e.test
+      roles: [family]

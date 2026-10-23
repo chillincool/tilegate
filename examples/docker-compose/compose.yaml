@@ -1,0 +1,56 @@
+# A complete local demo: Keycloak with three test users, and tilegate using the
+# built-in OIDC login.
+#
+#   docker compose up --build
+#   open http://localhost:8080   (Keycloak admin console: http://localhost:8081, admin/admin)
+#
+# Users (password = username):
+#   alice  - groups: admins          → sees everything
+#   bob    - groups: family, media   → sees the family and media apps
+#   carol  - no groups               → sees only apps without roles
+name: tilegate-demo
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Browsers reach Keycloak on localhost:8081, tilegate reaches it as
+      # keycloak:8080. The issuer stays the browser-facing URL, while
+      # back-channel endpoints (token, JWKS) follow whichever host was used.
+      KC_HOSTNAME: http://localhost:8081
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./realm-demo.json:/opt/keycloak/data/import/realm-demo.json:ro
+
+  tilegate:
+    # Swap for the published image once you're not hacking on tilegate itself:
+    # image: ghcr.io/chillincool/tilegate:latest
+    build: ../..
+    depends_on: [keycloak]
+    environment:
+      TILEGATE_AUTH_MODE: oidc
+      TILEGATE_OIDC_ISSUER: http://localhost:8081/realms/demo
+      # Fetch discovery from inside the compose network instead of localhost.
+      TILEGATE_OIDC_DISCOVERY_URL: http://keycloak:8080/realms/demo
+      TILEGATE_OIDC_CLIENT_ID: tilegate
+      TILEGATE_OIDC_CLIENT_SECRET: demo-client-secret-change-me
+      TILEGATE_OIDC_REDIRECT_URL: http://localhost:8080/auth/callback
+      TILEGATE_ROLES_CLAIM: groups
+      # Demo only. Generate a real one with: openssl rand -base64 48
+      TILEGATE_SESSION_SECRET: demo-session-secret-not-for-production-use
+      TILEGATE_APPS_FILE: /config/apps.yaml
+      # Turns on favourites. For PostgreSQL use a postgres:// URL instead.
+      TILEGATE_DATABASE_URL: sqlite:///data/tilegate.db
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../apps.yaml:/config/apps.yaml:ro
+      - tilegate-data:/data
+
+volumes:
+  tilegate-data:

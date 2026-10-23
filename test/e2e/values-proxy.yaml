@@ -1,0 +1,17 @@
+# Behind Envoy Gateway: verify the forwarded access token. Favourites in
+# SQLite on a volume.
+auth:
+  mode: proxy-jwt
+  proxyJWT:
+    issuer: https://keycloak.keycloak.svc.cluster.local:8443/realms/e2e
+    # Fetch signing keys over in-cluster http, so tilegate needn't trust the test CA.
+    jwksURL: http://keycloak.keycloak.svc.cluster.local:8080/realms/e2e/protocol/openid-connect/certs
+  logoutURL: /logout
+persistence:
+  enabled: true
+  size: 64Mi
+route:
+  enabled: true
+  hostnames: [apps.e2e.test]
+  parentRefs:
+    - name: e2e

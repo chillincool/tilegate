@@ -1,0 +1,24 @@
+{{- if and .Values.database.cnpg.enabled (eq (include "tilegate.databaseKind" .) "cnpg") }}
+{{- with .Values.database.cnpg }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "tilegate.cnpgName" $ }}
+  labels:
+    {{- include "tilegate.labels" $ | nindent 4 }}
+spec:
+  {{- $spec := dict
+      "instances" (int .instances)
+      "primaryUpdateStrategy" "unsupervised"
+      "storage" (dict "size" .storage.size)
+      "bootstrap" (dict "initdb" (dict "database" .database "owner" .owner))
+  }}
+  {{- with .imageName }}{{ $_ := set $spec "imageName" . }}{{ end }}
+  {{- with .storage.storageClass }}{{ $_ := set $spec.storage "storageClass" . }}{{ end }}
+  {{- with .existingSecret }}{{ $_ := set $spec.bootstrap.initdb "secret" (dict "name" .) }}{{ end }}
+  {{- if .monitoring.enablePodMonitor }}{{ $_ := set $spec "monitoring" (dict "enablePodMonitor" true) }}{{ end }}
+  {{- with .resources }}{{ $_ := set $spec "resources" . }}{{ end }}
+  {{- with .backup }}{{ $_ := set $spec "backup" . }}{{ end }}
+  {{- toYaml (mergeOverwrite $spec (deepCopy .extraSpec)) | nindent 2 }}
+{{- end }}
+{{- end }}

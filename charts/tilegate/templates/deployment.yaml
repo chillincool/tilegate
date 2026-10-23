@@ -1,0 +1,245 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tilegate.fullname" . }}
+  labels:
+    {{- include "tilegate.labels" . | nindent 4 }}
+spec:
+  {{- $db := include "tilegate.databaseKind" . }}
+  {{- if and (eq $db "sqlite") (gt (int .Values.replicaCount) 1) }}
+  {{- fail "SQLite supports a single replica; use PostgreSQL (database.existingSecret) to run more" }}
+  {{- end }}
+  replicas: {{ .Values.replicaCount }}
+  {{- if .Values.persistence.enabled }}
+  # The volume is ReadWriteOnce, so stop the old pod before starting the new one.
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "tilegate.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tilegate.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        # Secrets are read once at startup, so roll the pods when they change.
+        checksum/secret: {{ print .Values.auth.clientSecret .Values.auth.sessionSecret | sha256sum | trunc 16 }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: tilegate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: TILEGATE_APPS_FILE
+              value: /config/apps.yaml
+            - name: TILEGATE_AUTH_MODE
+              value: {{ .Values.auth.mode | quote }}
+            - name: TILEGATE_ROLES_CLAIM
+              value: {{ .Values.auth.rolesClaim | quote }}
+            - name: TILEGATE_LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: TILEGATE_LOG_FORMAT
+              value: {{ .Values.logFormat | quote }}
+            {{- with .Values.auth.trustedProxies }}
+            - name: TILEGATE_TRUSTED_PROXIES
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.logoutURL }}
+            - name: TILEGATE_LOGOUT_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if .Values.iconsConfigMap }}
+            - name: TILEGATE_ICONS_DIR
+              value: /icons
+            {{- end }}
+            {{- if eq .Values.auth.mode "oidc" }}
+            {{- with .Values.auth.oidc }}
+            - name: TILEGATE_OIDC_ISSUER
+              value: {{ required "auth.oidc.issuer is required in oidc mode" .issuer | quote }}
+            - name: TILEGATE_OIDC_CLIENT_ID
+              value: {{ .clientID | quote }}
+            - name: TILEGATE_OIDC_REDIRECT_URL
+              value: {{ required "auth.oidc.redirectURL is required in oidc mode" .redirectURL | quote }}
+            - name: TILEGATE_OIDC_SCOPES
+              value: {{ .scopes | quote }}
+            - name: TILEGATE_SESSION_TTL
+              value: {{ .sessionTTL | quote }}
+            {{- with .discoveryURL }}
+            - name: TILEGATE_OIDC_DISCOVERY_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .postLogoutRedirectURL }}
+            - name: TILEGATE_OIDC_POST_LOGOUT_REDIRECT_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- end }}
+            - name: TILEGATE_OIDC_CLIENT_SECRET_FILE
+              value: /secrets/client-secret
+            - name: TILEGATE_SESSION_SECRET_FILE
+              value: /secrets/session-secret
+            {{- else if eq .Values.auth.mode "proxy-jwt" }}
+            {{- with .Values.auth.proxyJWT }}
+            - name: TILEGATE_PROXY_JWT_HEADER
+              value: {{ .header | quote }}
+            - name: TILEGATE_PROXY_JWT_ISSUER
+              value: {{ required "auth.proxyJWT.issuer is required in proxy-jwt mode" .issuer | quote }}
+            {{- with .jwksURL }}
+            - name: TILEGATE_PROXY_JWT_JWKS_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .audience }}
+            - name: TILEGATE_PROXY_JWT_AUDIENCE
+              value: {{ . | quote }}
+            {{- end }}
+            {{- end }}
+            {{- else if eq .Values.auth.mode "proxy-header" }}
+            {{- with .Values.auth.proxyHeader }}
+            - name: TILEGATE_PROXY_USER_HEADER
+              value: {{ .userHeader | quote }}
+            - name: TILEGATE_PROXY_EMAIL_HEADER
+              value: {{ .emailHeader | quote }}
+            - name: TILEGATE_PROXY_GROUPS_HEADER
+              value: {{ .groupsHeader | quote }}
+            {{- end }}
+            {{- else if eq .Values.auth.mode "dev" }}
+            - name: TILEGATE_DEV_GROUPS
+              value: {{ .Values.auth.devGroups | quote }}
+            {{- end }}
+            {{- if eq $db "secret" }}
+            - name: TILEGATE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.secretKey }}
+            {{- else if or (eq $db "url") (and (eq $db "sqlite") .Values.database.url) }}
+            - name: TILEGATE_DATABASE_URL
+              value: {{ .Values.database.url | quote }}
+            {{- else if eq $db "sqlite" }}
+            - name: TILEGATE_DATABASE_URL
+              value: sqlite:///data/tilegate.db
+            {{- else if eq $db "cnpg" }}
+            {{- with .Values.database.cnpg }}
+            - name: TILEGATE_DATABASE_HOST
+              value: {{ include "tilegate.cnpgName" $ }}-rw
+            - name: TILEGATE_DATABASE_NAME
+              value: {{ .database | quote }}
+            - name: TILEGATE_DATABASE_USER
+              value: {{ .owner | quote }}
+            - name: TILEGATE_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .existingSecret | default (printf "%s-app" (include "tilegate.cnpgName" $)) }}
+                  key: password
+            {{- end }}
+            {{- else if eq $db "postgres" }}
+            {{- with .Values.database.postgres }}
+            - name: TILEGATE_DATABASE_HOST
+              value: {{ .host | quote }}
+            - name: TILEGATE_DATABASE_PORT
+              value: {{ .port | quote }}
+            - name: TILEGATE_DATABASE_NAME
+              value: {{ .database | quote }}
+            - name: TILEGATE_DATABASE_USER
+              value: {{ .user | quote }}
+            {{- with .sslMode }}
+            - name: TILEGATE_DATABASE_SSLMODE
+              value: {{ . | quote }}
+            {{- end }}
+            - name: TILEGATE_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "database.postgres.passwordSecret.name is required" .passwordSecret.name }}
+                  key: {{ .passwordSecret.key }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # tilegate waits up to 2 minutes for its database before it starts
+          # listening, so give it that long before liveness checks begin.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: /data
+            {{- end }}
+            {{- if eq .Values.auth.mode "oidc" }}
+            - name: secrets
+              mountPath: /secrets
+              readOnly: true
+            {{- end }}
+            {{- if .Values.iconsConfigMap }}
+            - name: icons
+              mountPath: /icons
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "tilegate.configMapName" . }}
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "tilegate.fullname" .) }}
+        {{- end }}
+        {{- if eq .Values.auth.mode "oidc" }}
+        - name: secrets
+          secret:
+            secretName: {{ include "tilegate.secretName" . }}
+        {{- end }}
+        {{- if .Values.iconsConfigMap }}
+        - name: icons
+          configMap:
+            name: {{ .Values.iconsConfigMap }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

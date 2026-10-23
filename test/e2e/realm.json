@@ -1,0 +1,131 @@
+{
+  "realm": "e2e",
+  "enabled": true,
+  "groups": [
+    {
+      "name": "admins"
+    },
+    {
+      "name": "family"
+    },
+    {
+      "name": "media"
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "tilegate",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "e2e-oidc-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://tilegate-oidc.tilegate.svc.cluster.local:8080/auth/callback"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://tilegate-oidc.tilegate.svc.cluster.local:8080/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "tilegate-proxy",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "e2e-proxy-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://apps.e2e.test/oauth2/callback"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://apps.e2e.test/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Admin",
+      "email": "alice@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/admins"
+      ]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "Family",
+      "email": "bob@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/family",
+        "/media"
+      ]
+    },
+    {
+      "username": "carol",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Carol",
+      "lastName": "Guest",
+      "email": "carol@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "carol",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

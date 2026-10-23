@@ -1,0 +1,322 @@
+/* Colours and sizes. --theme-* variables come from /theme.css, which is
+   generated from the theme section of the apps file. */
+:root {
+  --bg: var(--theme-bg, #f4f5f8);
+  --bg-image: var(--theme-bg-image, none);
+  --surface: #ffffff;
+  --surface-hover: #ffffff;
+  --border: #e3e5ec;
+  --text: #1c1f29;
+  --muted: #6b7183;
+  --accent: var(--theme-accent, #4f6bed);
+  --shadow: 0 1px 2px rgb(20 24 40 / 6%), 0 2px 8px rgb(20 24 40 / 5%);
+  --shadow-hover: 0 4px 10px rgb(20 24 40 / 10%), 0 12px 28px rgb(20 24 40 / 10%);
+  --tile: var(--theme-tile, 100px);
+  --radius: calc(var(--tile) * 0.18);
+  --tint-l: 92%;
+  --tint-text-l: 36%;
+  --tint-s: 70%;
+  --icon-glow: none;
+}
+
+/* Dark tokens: used when the OS prefers dark (unless theme.mode forces light),
+   or when theme.mode is dark. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--theme-bg-dark, var(--theme-bg, #12141a));
+    --bg-image: var(--theme-bg-image-dark, var(--theme-bg-image, none));
+    --surface: #1b1e27;
+    --surface-hover: #222633;
+    --border: #2a2e3b;
+    --text: #e8eaf1;
+    --muted: #949bb0;
+    --accent: var(--theme-accent, #8299ff);
+    --shadow: 0 1px 2px rgb(0 0 0 / 30%);
+    --shadow-hover: 0 6px 22px rgb(0 0 0 / 45%);
+    --tint-l: 24%;
+    --tint-text-l: 82%;
+    --tint-s: 45%;
+    --icon-glow: drop-shadow(0 0 1px rgb(255 255 255 / 55%)) drop-shadow(0 0 6px rgb(255 255 255 / 12%));
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: var(--theme-bg-dark, var(--theme-bg, #12141a));
+  --bg-image: var(--theme-bg-image-dark, var(--theme-bg-image, none));
+  --surface: #1b1e27;
+  --surface-hover: #222633;
+  --border: #2a2e3b;
+  --text: #e8eaf1;
+  --muted: #949bb0;
+  --accent: var(--theme-accent, #8299ff);
+  --shadow: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-hover: 0 6px 22px rgb(0 0 0 / 45%);
+  --tint-l: 24%;
+  --tint-text-l: 82%;
+  --tint-s: 45%;
+  --icon-glow: drop-shadow(0 0 1px rgb(255 255 255 / 55%)) drop-shadow(0 0 6px rgb(255 255 255 / 12%));
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg) var(--bg-image) center / cover fixed;
+  color: var(--text);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+a { color: var(--accent); }
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 28px 24px 8px;
+}
+
+.bar h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.logo { height: 32px; width: auto; }
+
+#search {
+  flex: 1;
+  max-width: 320px;
+  margin-left: auto;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+#search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+#search + .who { margin-left: 0; }
+
+.who .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Theme button: cycles auto → light → dark. Only the icon for the current
+   choice is shown. */
+.theme-toggle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.theme-toggle:hover { color: var(--text); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-toggle svg { display: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle[data-mode="auto"] .i-auto,
+.theme-toggle[data-mode="light"] .i-light,
+.theme-toggle[data-mode="dark"] .i-dark { display: block; }
+
+.logout { color: var(--muted); text-decoration: none; white-space: nowrap; }
+.logout:hover { color: var(--text); text-decoration: underline; }
+
+main {
+  flex: 1;
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 8px 24px 40px;
+}
+
+section { margin-top: 24px; }
+
+h2 {
+  margin: 0 0 12px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--tile));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--tile) * 0.06);
+  width: var(--tile);
+  height: var(--tile);
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-decoration: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.tile:hover { transform: translateY(-2px); background: var(--surface-hover); box-shadow: var(--shadow-hover); }
+.tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.tile:active { transform: translateY(0); }
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--tile) * 0.42);
+  height: calc(var(--tile) * 0.42);
+  border-radius: calc(var(--tile) * 0.12);
+  font-size: calc(var(--tile) * 0.2);
+  font-weight: 650;
+}
+
+.icon:not(:has(img)) {
+  background: hsl(var(--hue) var(--tint-s) var(--tint-l));
+  color: hsl(var(--hue) 60% var(--tint-text-l));
+}
+
+/* --icon-glow keeps black logos visible on dark tiles without tinting colourful ones. */
+.icon img { width: 100%; height: 100%; object-fit: contain; filter: var(--icon-glow); }
+
+/* Twelve fixed hues so fallback colours need no inline styles (strict CSP). */
+.h0 { --hue: 0; } .h1 { --hue: 30; } .h2 { --hue: 60; } .h3 { --hue: 90; }
+.h4 { --hue: 120; } .h5 { --hue: 150; } .h6 { --hue: 180; } .h7 { --hue: 210; }
+.h8 { --hue: 240; } .h9 { --hue: 270; } .h10 { --hue: 300; } .h11 { --hue: 330; }
+
+/* Names wrap between words onto at most two lines. app.js widens the tiles
+   (all together) if a single word wouldn't otherwise fit. */
+.label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+/* Uncategorised apps only need a heading to separate them from Favourites. */
+#favorites.hidden + section .uncategorised { display: none; }
+
+/* Favourite star: top-right of the tile, shown on hover or keyboard focus,
+   and always when the app is a favourite. */
+.grid li { position: relative; }
+
+.star {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.star svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.grid li:hover .star, .star:focus-visible { opacity: 1; }
+.star:hover { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); }
+.star:focus-visible { outline: 2px solid var(--accent); }
+.star[aria-pressed="true"] { opacity: 1; color: #f5b301; }
+.star[aria-pressed="true"] svg { fill: currentColor; }
+.star.failed { color: #e5484d; opacity: 1; }
+
+/* Touch screens have no hover, so keep the star faintly visible. */
+@media (hover: none) {
+  .star { opacity: 0.45; }
+}
+
+.empty { margin: 64px 0; color: var(--muted); text-align: center; }
+
+.hidden { display: none !important; }
+
+footer {
+  padding: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+body.error main { max-width: 480px; margin-top: 15vh; text-align: center; }
+body.error h1 { font-size: 20px; }
+body.error p { color: var(--muted); }
+
+@media (max-width: 600px) {
+  :root { --tile: calc(var(--theme-tile, 100px) * 0.9); }
+  .bar { flex-wrap: wrap; padding: 20px 16px 4px; }
+  #search { order: 3; flex-basis: 100%; max-width: none; }
+  .who .name { display: none; }
+  main { padding: 4px 16px 32px; }
+  .grid { gap: 10px; justify-content: space-between; }
+  .tile { padding: 8px 4px; }
+  .label { font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile { transition: none; }
+}

@@ -1,0 +1,16 @@
+# Built-in OIDC login, two replicas, favourites in a CNPG cluster the chart creates.
+replicaCount: 2
+auth:
+  mode: oidc
+  oidc:
+    issuer: https://keycloak.keycloak.svc.cluster.local:8443/realms/e2e
+    # Discovery over in-cluster http; the issuer in tokens stays https.
+    discoveryURL: http://keycloak.keycloak.svc.cluster.local:8080/realms/e2e
+    clientID: tilegate
+    redirectURL: http://tilegate-oidc.tilegate.svc.cluster.local:8080/auth/callback
+  clientSecret: e2e-oidc-secret
+database:
+  cnpg:
+    enabled: true
+    storage:
+      size: 256Mi

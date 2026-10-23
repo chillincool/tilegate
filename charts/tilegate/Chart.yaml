@@ -1,0 +1,15 @@
+apiVersion: v2
+name: tilegate
+description: A self-hosted "My Apps" launcher that shows each user only the apps their roles allow.
+type: application
+# version and appVersion are overwritten from the git tag by the release workflow.
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/chillincool/tilegate
+sources:
+  - https://github.com/chillincool/tilegate
+icon: https://raw.githubusercontent.com/chillincool/tilegate/main/internal/server/static/favicon.svg
+keywords: [launcher, dashboard, oidc, keycloak, sso]
+maintainers:
+  - name: chillincool
+    url: https://github.com/chillincool

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{.StatusText}}</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css?v={{.Version}}">
+</head>
+<body class="error">
+<main>
+  <h1>{{.Status}} · {{.StatusText}}</h1>
+  <p>{{.Message}}</p>
+  <p><a href="/">Try again</a></p>
+</main>
+</body>
+</html>

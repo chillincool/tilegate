@@ -1,0 +1,64 @@
+# Keycloak in dev mode with the e2e realm.
+#  - https://keycloak.keycloak.svc.cluster.local:8443 is the public URL and the
+#    token issuer (Envoy Gateway only accepts https issuers). Its certificate
+#    comes from a throwaway CA that run.sh creates.
+#  - http://...:8080 is for in-cluster back-channel calls. Because of
+#    KC_HOSTNAME_BACKCHANNEL_DYNAMIC, discovery fetched over it returns http
+#    token/JWKS endpoints while the issuer stays https.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: keycloak }
+  template:
+    metadata:
+      labels: { app: keycloak }
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.4
+          args: ["start-dev", "--import-realm"]
+          env:
+            - { name: KC_HOSTNAME, value: "https://keycloak.keycloak.svc.cluster.local:8443" }
+            - { name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC, value: "true" }
+            - { name: KC_HTTP_ENABLED, value: "true" }
+            - { name: KC_HTTPS_CERTIFICATE_FILE, value: /tls/tls.crt }
+            - { name: KC_HTTPS_CERTIFICATE_KEY_FILE, value: /tls/tls.key }
+            - { name: KC_BOOTSTRAP_ADMIN_USERNAME, value: admin }
+            - { name: KC_BOOTSTRAP_ADMIN_PASSWORD, value: admin }
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: https, containerPort: 8443 }
+          # Ready once the e2e realm has been imported.
+          readinessProbe:
+            httpGet: { path: /realms/e2e/.well-known/openid-configuration, port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          volumeMounts:
+            - { name: realm, mountPath: /opt/keycloak/data/import }
+            - { name: tls, mountPath: /tls }
+      volumes:
+        - name: realm
+          configMap: { name: keycloak-realm }
+        - name: tls
+          secret: { secretName: keycloak-tls }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  selector: { app: keycloak }
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+    - { name: https, port: 8443, targetPort: https }
