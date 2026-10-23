@@ -49,14 +49,22 @@
       groupName: 'Go modules',
     },
     {
-      description: 'Move the Go toolchain everywhere at once (mise and the Dockerfile build image)',
-      matchDepNames: ['go', 'golang'],
-      groupName: 'Go toolchain',
-    },
-    {
       description: 'Developer and test tools (mise, e2e cluster components) in one PR',
       matchFileNames: ['mise.toml', 'test/e2e/**', 'scripts/**', 'examples/**'],
       groupName: 'dev and test tooling',
+    },
+    // These two come after the broader groups above, so they win: later rules
+    // override earlier ones.
+    {
+      description: 'Move the Go toolchain everywhere at once (mise and the Dockerfile build image)',
+      matchDepNames: ['go', 'golang'],
+      matchManagers: ['mise', 'dockerfile'],
+      groupName: 'Go toolchain',
+    },
+    {
+      description: 'The PostgreSQL test image is used by CI and the local test script; keep them in step',
+      matchDepNames: ['postgres'],
+      groupName: 'PostgreSQL test image',
     },
     {
       description: 'The release chart version is set from the git tag, not by Renovate',
