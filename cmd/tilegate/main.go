@@ -133,7 +133,12 @@ func run(log *slog.Logger) error {
 		}
 		defer db.Close()
 		userStore = db
-		log.Info("favourites enabled", "database", strings.SplitN(dbURL, "://", 2)[0])
+		// Name the database type without deriving anything from the URL, which may hold a password.
+		kind := "postgres"
+		if strings.HasPrefix(dbURL, "sqlite://") {
+			kind = "sqlite"
+		}
+		log.Info("favourites enabled", "database", kind)
 	}
 
 	srv := &http.Server{

@@ -20,7 +20,7 @@ func (s *Server) userTheme(r *http.Request, u *auth.User, def string) string {
 	if s.DB != nil && u.Subject != "" {
 		t, err := s.DB.Theme(r.Context(), u.Subject)
 		if err != nil {
-			s.Log.Error("loading theme preference", "err", err, "user", u.Subject)
+			s.Log.Error("loading theme preference", "err", err)
 		} else if slices.Contains(themeModes, t) {
 			return t
 		}
@@ -58,7 +58,7 @@ func (s *Server) setTheme(w http.ResponseWriter, r *http.Request) {
 	})
 	if s.DB != nil && u.Subject != "" {
 		if err := s.DB.SetTheme(r.Context(), u.Subject, mode); err != nil {
-			s.Log.Error("saving theme preference", "err", err, "user", u.Subject)
+			s.Log.Error("saving theme preference", "err", err)
 			http.Error(w, "could not save", http.StatusInternalServerError)
 			return
 		}

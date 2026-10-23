@@ -5,6 +5,7 @@ package auth
 import (
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/chillincool/tilegate/internal/apps"
 	"github.com/chillincool/tilegate/internal/claims"
@@ -72,6 +73,18 @@ func userFromClaims(paths []string, payloads ...map[string]any) *User {
 		u.Name = u.Subject
 	}
 	return u
+}
+
+// logSafe tidies a value that came straight from a request (such as a query
+// parameter) before it is logged: line breaks become spaces and it is cut to
+// 200 bytes, so a crafted URL can't break up or flood the logs.
+func logSafe(s string) string {
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	if len(s) > 200 {
+		s = s[:200]
+	}
+	return s
 }
 
 // wantsHTML reports whether the client is a browser navigating to a page, as

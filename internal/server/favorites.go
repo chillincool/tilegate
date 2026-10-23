@@ -29,7 +29,7 @@ func (s *Server) tiles(r *http.Request, u *auth.User, visible []apps.App) (all, 
 		var err error
 		if ids, err = s.DB.Favorites(r.Context(), u.Subject); err != nil {
 			// Still render the page; favourites are a convenience.
-			s.Log.Error("loading favourites", "err", err, "user", u.Subject)
+			s.Log.Error("loading favourites", "err", err)
 		}
 	}
 	all = make([]tile, len(visible))
@@ -94,7 +94,7 @@ func (s *Server) changeFavorite(w http.ResponseWriter, r *http.Request) {
 		err = s.DB.RemoveFavorite(r.Context(), u.Subject, id)
 	}
 	if err != nil {
-		s.Log.Error("saving favourite", "err", err, "user", u.Subject)
+		s.Log.Error("saving favourite", "err", err)
 		http.Error(w, "could not save", http.StatusInternalServerError)
 		return
 	}
