@@ -8,6 +8,7 @@
     'helpers:pinGitHubActionDigests',
     ':timezone(America/Chicago)',
   ],
+  dependencyDashboardTitle: 'Renovate Dashboard 🤖',
   // One batch of update PRs a week. Security fixes ignore the schedule.
   schedule: ['before 6am on monday'],
   vulnerabilityAlerts: {
@@ -31,7 +32,7 @@
       customType: 'regex',
       managerFilePatterns: ['/^test/e2e/.+\\.sh$/', '/^scripts/.+\\.sh$/'],
       matchStrings: [
-        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( registryUrl=(?<registryUrl>\\S+))?\\n[^\\n]*[=:](?<currentValue>[^\\s"]+)',
+        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( registryUrl=(?<registryUrl>\\S+))?\\n[^\\n]*[=:]\\s*(?<currentValue>[^\\s"]+)',
       ],
     },
   ],
