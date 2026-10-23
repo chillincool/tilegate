@@ -60,9 +60,9 @@ These are already applied. They're listed here so you know what's enforced and w
 
 Not enabled, because they need a paid GitHub licence: secret scanning for generic (non-vendor) patterns, and secret validity checks.
 
-### Still to do after the first release
+### Package visibility
 
-- **Make the packages public.** Packages that GitHub Actions publishes to GHCR start out private. After tagging `v0.1.0`, open the organisation's *Packages* page, and for both `tilegate` and `charts/tilegate` go to *Package settings* → *Change visibility* → Public. Also check each package is linked to this repository.
+The image and chart on GHCR are public, because packages published by this public repository's own workflows take on its visibility. Check from any machine that isn't logged in to GHCR: `docker pull ghcr.io/chillincool/tilegate:latest` should work without `docker login`.
 
 ## Why the repository is set up this way
 
