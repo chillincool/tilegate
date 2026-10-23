@@ -54,7 +54,7 @@ These are already applied. They're listed here so you know what's enforced and w
 | Dependabot alerts | Alerts on vulnerable dependencies; Renovate reads them and opens the fix PRs. Dependabot's own update and security PRs are off, to avoid duplicates. | Settings → Security |
 | CodeQL (default setup, extended queries) | Scans the Go code and the workflow files on every PR, on every push to `main`, and weekly. | Security → Code scanning |
 | Actions: read-only token by default | Workflows must ask for write access explicitly; `release.yml` asks for `contents` and `packages`. | Settings → Actions → General |
-| Actions: allowed actions | Only GitHub's own actions, verified creators, `jdx/mise-action`, `azure/setup-helm`, `docker/*` and `renovatebot/github-action`. Adding a new action means adding it here. | Settings → Actions → General |
+| Actions: allowed actions | Only GitHub's own actions, verified creators, `jdx/mise-action`, `azure/setup-helm`, `docker/*`, `renovatebot/github-action` and `oras-project/setup-oras`. Adding a new action means adding it here. | Settings → Actions → General |
 | Actions: outside contributors | Workflows from outside contributors' PRs wait for your approval before running. | Settings → Actions → General |
 | Actions pinned to commit SHAs | Workflows use full commit SHAs, not movable tags; Renovate updates them. | `.github/workflows/` |
 
@@ -83,6 +83,10 @@ The image and chart on GHCR are public, because packages published by this publi
 | **Rulesets with no bypass, and SHA-pinned actions** | A solo maintainer is the easiest account to compromise and the likeliest to cut corners at 1am. Requiring PRs and green checks even for the owner means nothing reaches `main` or a release untested. Pinning actions to commits means an upstream tag being moved can't change what runs in CI. |
 | **CI also runs `govulncheck`** | An auth-adjacent project should hear about vulnerable dependencies before its users do. |
 | **No `CHANGELOG.md`** | Generated release notes come from PR titles. Write clear PR titles and the changelog writes itself. |
+
+## Artifact Hub
+
+The chart is listed on [Artifact Hub](https://artifacthub.io). What it shows comes from the `artifacthub.io/*` annotations in [`Chart.yaml`](charts/tilegate/Chart.yaml): category, licence, links, screenshots, and the image it deploys, which the release workflow keeps in step with each version. The verified-publisher ID lives in [`charts/artifacthub-repo.yml`](charts/artifacthub-repo.yml); when that file changes, [`artifacthub.yml`](.github/workflows/artifacthub.yml) pushes it to GHCR, where Artifact Hub looks for it.
 
 ## Rotating the Renovate app key
 
