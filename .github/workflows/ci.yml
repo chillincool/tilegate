@@ -1,8 +1,10 @@
 name: CI
 
-# Every job runs the same `mise` tasks you can run locally:
+# The checks and e2e jobs run the same `mise` tasks you can run locally:
 #   mise run ci    fast checks
 #   mise run e2e   end-to-end tests in a throwaway kind cluster
+# publish-dry-run runs the release workflow's steps without uploading, so a
+# PR that updates those actions is tested before it's merged.
 
 on:
   pull_request:
@@ -51,3 +53,40 @@ jobs:
           persist-credentials: false
       - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
       - run: mise run e2e
+
+  publish-dry-run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read   # enough to log in to GHCR; nothing is pushed
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/tilegate
+          tags: |
+            type=ref,event=pr
+            type=sha
+      - name: Build both architectures (not pushed)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      - name: Package the chart (not pushed)
+        run: helm package charts/tilegate --version 0.0.0-ci --app-version 0.0.0-ci -d dist

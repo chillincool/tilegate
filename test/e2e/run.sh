@@ -13,8 +13,11 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 HERE=$ROOT/test/e2e
 STATE=$ROOT/.e2e
 
+# renovate: datasource=docker depName=docker.io/envoyproxy/gateway-helm
 ENVOY_GATEWAY_VERSION=1.9.2
+# renovate: datasource=helm depName=cloudnative-pg registryUrl=https://cloudnative-pg.github.io/charts
 CNPG_CHART_VERSION=0.29.1
+# renovate: datasource=docker depName=curlimages/curl
 CURL_IMAGE=curlimages/curl:8.17.0
 
 # Always use our own kubeconfig, whatever the caller's environment says, so

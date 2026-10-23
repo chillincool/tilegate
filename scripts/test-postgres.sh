@@ -4,9 +4,11 @@
 set -euo pipefail
 name=tilegate-test-postgres
 port=${TILEGATE_TEST_POSTGRES_PORT:-55432}
+# renovate: datasource=docker depName=postgres
+image=postgres:17-alpine
 
 docker rm -f "$name" > /dev/null 2>&1 || true
-docker run -d --rm --name "$name" -e POSTGRES_PASSWORD=test -p "127.0.0.1:$port:5432" postgres:17-alpine > /dev/null
+docker run -d --rm --name "$name" -e POSTGRES_PASSWORD=test -p "127.0.0.1:$port:5432" "$image" > /dev/null
 trap 'docker rm -f "$name" > /dev/null 2>&1 || true' EXIT
 
 for _ in $(seq 60); do
