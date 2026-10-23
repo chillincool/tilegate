@@ -35,7 +35,7 @@ gh pr create --fill
 gh pr merge --squash --auto     # merges by itself once the checks pass
 ```
 
-Dependabot opens PRs for Go modules, GitHub Actions and the Docker base image every week. CI tests each one; merge the green ones. For a major version bump, skim the upstream release notes first.
+Renovate opens grouped update PRs every Monday morning (US Central), and security fixes immediately. CI tests each one, including a dry run of the release steps, so merge the green ones. For a major version bump, skim the upstream release notes first. The **Dependency Dashboard** issue lists everything pending, and lets you trigger any update early by ticking its box.
 
 ## Repository settings
 
@@ -43,18 +43,19 @@ These are already applied. They're listed here so you know what's enforced and w
 
 | Setting | What it does | Where |
 |---|---|---|
-| `main` ruleset | Changes need a PR; the `checks`, `e2e (ubuntu-latest)` and `e2e (ubuntu-24.04-arm)` checks must pass; CodeQL must report no high or critical alerts; no force-pushes, deletion or merge commits. No bypass, not even for admins. | Settings → Rules → Rulesets |
+| `main` ruleset | Changes need a PR; the `checks`, `e2e (ubuntu-latest)`, `e2e (ubuntu-24.04-arm)` and `publish-dry-run` checks must pass; CodeQL must report no high or critical alerts; no force-pushes, deletion or merge commits. No bypass, not even for admins. | Settings → Rules → Rulesets |
 | `release tags` ruleset | `v*` tags can't be moved, overwritten or deleted. | Settings → Rules → Rulesets |
 | Immutable releases | A published release's tag and assets can't be changed. | Settings → General → Releases |
 | Merging | Squash only, with the PR title as the commit message. Auto-merge on; branches deleted after merge. | Settings → General → Pull Requests |
 | Private vulnerability reporting | The "Report a vulnerability" button that [SECURITY.md](SECURITY.md) links to. | Settings → Security |
 | Secret scanning + push protection | Blocks pushes containing known credential formats, and alerts on any already committed. | Settings → Security |
-| Dependabot alerts + security updates | Alerts on vulnerable dependencies and opens fix PRs automatically. | Settings → Security |
+| Renovate | Opens the dependency update PRs, and security-fix PRs as soon as an alert appears. Config: [`.github/renovate.json5`](.github/renovate.json5). | Org settings → GitHub Apps → Renovate |
+| Dependabot alerts | Alerts on vulnerable dependencies; Renovate reads them and opens the fix PRs. Dependabot's own update and security PRs are off, to avoid duplicates. | Settings → Security |
 | CodeQL (default setup, extended queries) | Scans the Go code and the workflow files on every PR, on every push to `main`, and weekly. | Security → Code scanning |
 | Actions: read-only token by default | Workflows must ask for write access explicitly; `release.yml` asks for `contents` and `packages`. | Settings → Actions → General |
 | Actions: allowed actions | Only GitHub's own actions, verified creators, `jdx/mise-action`, `azure/setup-helm` and `docker/*`. Adding a new action means adding it here. | Settings → Actions → General |
 | Actions: outside contributors | Workflows from outside contributors' PRs wait for your approval before running. | Settings → Actions → General |
-| Actions pinned to commit SHAs | Workflows use full commit SHAs, not movable tags; Dependabot updates them. | `.github/workflows/` |
+| Actions pinned to commit SHAs | Workflows use full commit SHAs, not movable tags; Renovate updates them. | `.github/workflows/` |
 
 Not enabled, because they need a paid GitHub licence: secret scanning for generic (non-vendor) patterns, and secret validity checks.
 
