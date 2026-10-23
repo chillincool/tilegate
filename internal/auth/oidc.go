@@ -206,7 +206,8 @@ func (o *OIDC) login(w http.ResponseWriter, r *http.Request) {
 func (o *OIDC) callback(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	if e := q.Get("error"); e != "" {
-		o.log.Warn("idp returned error", "error", e, "description", q.Get("error_description"))
+		e = logSafe(e)
+		o.log.Warn("idp returned error", "error", e, "description", logSafe(q.Get("error_description")))
 		o.fail(w, r, http.StatusForbidden, "Sign-in was not completed: "+e)
 		return
 	}

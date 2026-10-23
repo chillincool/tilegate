@@ -286,3 +286,12 @@ func TestProxyHeader(t *testing.T) {
 		t.Error("untrusted peer accepted")
 	}
 }
+
+func TestLogSafe(t *testing.T) {
+	if got := logSafe("bad\r\nINFO forged line"); strings.ContainsAny(got, "\r\n") {
+		t.Errorf("line breaks kept: %q", got)
+	}
+	if got := logSafe(strings.Repeat("x", 500)); len(got) != 200 {
+		t.Errorf("not truncated: %d bytes", len(got))
+	}
+}
