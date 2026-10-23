@@ -68,6 +68,8 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          # Keep the image listed for Artifact Hub in step with this release.
+          sed -i "s|image: ghcr.io/chillincool/tilegate:.*|image: ghcr.io/chillincool/tilegate:$version|" charts/tilegate/Chart.yaml
           helm package charts/tilegate --version "$version" --app-version "$version" -d dist
           helm push "dist/tilegate-$version.tgz" "$CHART_REPO"
 

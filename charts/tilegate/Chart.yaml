@@ -13,3 +13,31 @@ keywords: [launcher, dashboard, oidc, keycloak, sso]
 maintainers:
   - name: chillincool
     url: https://github.com/chillincool
+annotations:
+  # Shown on Artifact Hub (https://artifacthub.io/docs/topics/annotations/helm/).
+  artifacthub.io/category: security
+  artifacthub.io/license: MIT
+  artifacthub.io/prerelease: "false"
+  # The release workflow rewrites this tag to the version being released.
+  artifacthub.io/images: |
+    - name: tilegate
+      image: ghcr.io/chillincool/tilegate:0.1.0
+      platforms:
+        - linux/amd64
+        - linux/arm64
+  artifacthub.io/links: |
+    - name: Source
+      url: https://github.com/chillincool/tilegate
+    - name: Documentation
+      url: https://github.com/chillincool/tilegate#readme
+    - name: support
+      url: https://github.com/chillincool/tilegate/issues
+  artifacthub.io/screenshots: |
+    - title: Signed in as an admin
+      url: https://raw.githubusercontent.com/chillincool/tilegate/main/docs/screenshots/admin-light.png
+    - title: Dark mode
+      url: https://raw.githubusercontent.com/chillincool/tilegate/main/docs/screenshots/admin-dark.png
+    - title: A user with fewer roles sees fewer apps
+      url: https://raw.githubusercontent.com/chillincool/tilegate/main/docs/screenshots/family-light.png
+    - title: Favourites
+      url: https://raw.githubusercontent.com/chillincool/tilegate/main/docs/screenshots/favorites.png
