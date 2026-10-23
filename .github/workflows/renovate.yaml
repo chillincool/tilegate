@@ -49,7 +49,7 @@ jobs:
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_REPOSITORIES: ${{ github.repository }}
-          RENOVATE_PLATFORM_COMMIT: "true"   # commits made through the API, so GitHub marks them verified
+          RENOVATE_PLATFORM_COMMIT: enabled   # commits made through the API, so GitHub marks them verified
           RENOVATE_DRY_RUN: ${{ inputs.dryRun && 'full' || '' }}
         with:
           token: ${{ steps.token.outputs.token }}
