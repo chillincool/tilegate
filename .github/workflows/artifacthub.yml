@@ -8,7 +8,7 @@ name: Artifact Hub metadata
 on:
   push:
     branches: [main]
-    paths: [charts/artifacthub-repo.yml]
+    paths: [charts/artifacthub-repo.yml, .github/workflows/artifacthub.yml]
   workflow_dispatch:
 
 permissions: {}
@@ -23,9 +23,9 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
+      # Installs the ORAS version this action release ships checksums for;
+      # Renovate updating the action moves it forward.
       - uses: oras-project/setup-oras@005458ad77f1c8facd38a094e4af2e69e5607ff4 # v2.0.2
-        with:
-          version: 1.3.5
       - name: Push artifacthub-repo.yml
         working-directory: charts
         env:
