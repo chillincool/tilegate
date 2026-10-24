@@ -1,0 +1,6 @@
+# Artifact Hub repository metadata. The artifacthub.yml workflow publishes
+# this to ghcr.io/chillincool/charts/tilegate:artifacthub.io whenever it
+# changes; Artifact Hub reads it from there to mark the listing as coming
+# from a verified publisher.
+# https://artifacthub.io/docs/topics/repositories/
+repositoryID: 129795b7-b16b-46ab-960a-c9314b10ae8d
