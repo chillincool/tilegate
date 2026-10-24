@@ -1,0 +1,500 @@
+{
+  "type": "object",
+  "properties": {
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Defaults to the chart's appVersion"
+        },
+        "pullPolicy": {
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "auth": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "oidc",
+            "proxy-jwt",
+            "proxy-header",
+            "dev"
+          ]
+        },
+        "rolesClaim": {
+          "type": "string",
+          "description": "Comma-separated claim path(s) holding roles"
+        },
+        "oidc": {
+          "type": "object",
+          "properties": {
+            "issuer": {
+              "type": "string"
+            },
+            "discoveryURL": {
+              "type": "string"
+            },
+            "clientID": {
+              "type": "string"
+            },
+            "redirectURL": {
+              "type": "string"
+            },
+            "postLogoutRedirectURL": {
+              "type": "string"
+            },
+            "scopes": {
+              "type": "string"
+            },
+            "sessionTTL": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "proxyJWT": {
+          "type": "object",
+          "properties": {
+            "header": {
+              "type": "string"
+            },
+            "issuer": {
+              "type": "string"
+            },
+            "jwksURL": {
+              "type": "string"
+            },
+            "audience": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "proxyHeader": {
+          "type": "object",
+          "properties": {
+            "userHeader": {
+              "type": "string"
+            },
+            "emailHeader": {
+              "type": "string"
+            },
+            "groupsHeader": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "trustedProxies": {
+          "type": "string"
+        },
+        "logoutURL": {
+          "type": "string"
+        },
+        "devGroups": {
+          "type": "string"
+        },
+        "existingSecret": {
+          "type": "string"
+        },
+        "clientSecret": {
+          "type": "string"
+        },
+        "sessionSecret": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "config": {
+      "title": "tilegate apps file",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Page title. Default: My Apps"
+        },
+        "theme": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Page appearance. Every key is optional.",
+          "properties": {
+            "mode": {
+              "enum": [
+                "auto",
+                "light",
+                "dark"
+              ],
+              "description": "Default for users who haven't used the theme button. auto follows the OS. Default: auto"
+            },
+            "tileSize": {
+              "type": "integer",
+              "minimum": 56,
+              "maximum": 240,
+              "description": "Minimum tile size in px; tiles grow to fit the longest word in any app name. Default: 100"
+            },
+            "accent": {
+              "type": "string",
+              "description": "CSS colour for links, avatar and focus rings"
+            },
+            "background": {
+              "type": "string",
+              "description": "Page background colour (both modes unless backgroundDark is set)"
+            },
+            "backgroundDark": {
+              "type": "string",
+              "description": "Page background colour in dark mode"
+            },
+            "backgroundImage": {
+              "type": "string",
+              "description": "Same forms as an app icon; covers the page. Used in both modes unless backgroundImageDark is set"
+            },
+            "backgroundImageDark": {
+              "type": "string",
+              "description": "Background image in dark mode"
+            },
+            "logo": {
+              "type": "string",
+              "description": "Shown before the title. Same forms as an app icon"
+            },
+            "favicon": {
+              "type": "string",
+              "description": "Browser tab icon. Same forms as an app icon"
+            },
+            "customCSS": {
+              "type": "string",
+              "description": "Extra CSS appended after the built-in styles"
+            }
+          }
+        },
+        "apps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "url"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                "description": "Stable id for favourites. Default: slug of name"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "url": {
+                "type": "string",
+                "pattern": "^https?://"
+              },
+              "loginURL": {
+                "type": "string",
+                "description": "Where the tile links instead of url, e.g. the app's SSO start. A path starting with / is resolved against url."
+              },
+              "icon": {
+                "type": "string",
+                "description": "https://\u2026 URL, di:<name> for dashboard-icons, or a file name in TILEGATE_ICONS_DIR. Empty shows the app's initial."
+              },
+              "description": {
+                "type": "string",
+                "description": "Tooltip text; also matched by search."
+              },
+              "category": {
+                "type": "string",
+                "description": "Groups tiles under a heading."
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": "Users holding any of these roles/groups see the app. Omit to show it to every signed-in user."
+              },
+              "claim": {
+                "type": "string",
+                "description": "Claim path to read roles from for this app only, overriding TILEGATE_ROLES_CLAIM."
+              },
+              "newTab": {
+                "type": "boolean",
+                "description": "Open in a new browser tab."
+              }
+            }
+          }
+        }
+      },
+      "description": "The apps file (see schema/apps.schema.json)"
+    },
+    "database": {
+      "type": "object",
+      "properties": {
+        "existingSecret": {
+          "type": "string"
+        },
+        "secretKey": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "postgres": {
+          "type": "object",
+          "properties": {
+            "host": {
+              "type": "string"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "database": {
+              "type": "string"
+            },
+            "user": {
+              "type": "string"
+            },
+            "passwordSecret": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "sslMode": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "cnpg": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "instances": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "imageName": {
+              "type": "string"
+            },
+            "storage": {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "string"
+                },
+                "storageClass": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "database": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "existingSecret": {
+              "type": "string"
+            },
+            "monitoring": {
+              "type": "object",
+              "properties": {
+                "enablePodMonitor": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "resources": {
+              "type": "object"
+            },
+            "backup": {
+              "type": "object"
+            },
+            "scheduledBackup": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "schedule": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "extraSpec": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "persistence": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "existingClaim": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string"
+        },
+        "storageClass": {
+          "type": "string"
+        },
+        "accessMode": {
+          "enum": [
+            "ReadWriteOnce",
+            "ReadWriteOncePod",
+            "ReadWriteMany"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "existingConfigMap": {
+      "type": "string"
+    },
+    "iconsConfigMap": {
+      "type": "string"
+    },
+    "logLevel": {
+      "enum": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ]
+    },
+    "logFormat": {
+      "enum": [
+        "text",
+        "json"
+      ]
+    },
+    "extraEnv": {
+      "type": "array"
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "additionalProperties": false
+    },
+    "route": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "hostnames": {
+          "type": "array"
+        },
+        "parentRefs": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "className": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "hosts": {
+          "type": "array"
+        },
+        "tls": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": false
+    },
+    "resources": {
+      "type": "object"
+    },
+    "podAnnotations": {
+      "type": "object"
+    },
+    "podLabels": {
+      "type": "object"
+    },
+    "podSecurityContext": {
+      "type": "object"
+    },
+    "securityContext": {
+      "type": "object"
+    },
+    "nodeSelector": {
+      "type": "object"
+    },
+    "tolerations": {
+      "type": "array"
+    },
+    "affinity": {
+      "type": "object"
+    },
+    "global": {
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "tilegate Helm chart values",
+  "additionalProperties": false
+}

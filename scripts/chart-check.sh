@@ -13,6 +13,7 @@ must_fail() {
   fi
 }
 
+scripts/values-schema.py --check
 helm lint "$chart" "${oidc[@]}"
 render "${oidc[@]}"
 render --set auth.mode=proxy-jwt --set auth.proxyJWT.issuer=https://idp
@@ -25,4 +26,12 @@ render --set auth.mode=dev --set route.enabled=true --set 'route.parentRefs[0].n
 must_fail --set auth.mode=dev --set persistence.enabled=true --set replicaCount=2
 must_fail --set auth.mode=dev --set database.postgres.host=pg
 must_fail --set auth.oidc.redirectURL=https://apps/auth/callback   # oidc mode without an issuer
+# values.schema.json catches typos and bad values at install time
+must_fail "${oidc[@]}" --set auht.mode=oidc
+must_fail "${oidc[@]}" --set auth.mode=sso
+must_fail "${oidc[@]}" --set 'config.apps[0].name=A' --set 'config.apps[0].url=https://a' --set 'config.apps[0].role=admins'
+must_fail "${oidc[@]}" --set database.postgres.port=99999
+# the e2e values files must also pass the schema
+render -f test/e2e/values-common.yaml -f test/e2e/values-oidc.yaml
+render -f test/e2e/values-common.yaml -f test/e2e/values-proxy.yaml
 echo "chart OK"
