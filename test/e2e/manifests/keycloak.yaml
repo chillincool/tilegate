@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:26.4
+          image: quay.io/keycloak/keycloak:26.8
           args: ["start-dev", "--import-realm"]
           env:
             - { name: KC_HOSTNAME, value: "https://keycloak.keycloak.svc.cluster.local:8443" }
