@@ -24,7 +24,7 @@ jobs:
     services:
       # The store tests also run against PostgreSQL when this is available.
       postgres:
-        image: postgres:17-alpine
+        image: postgres:19-alpine
         env:
           POSTGRES_PASSWORD: test
         ports: ["5432:5432"]
